@@ -1,0 +1,18 @@
+node_modules
+.next
+out
+dist
+.env
+.env.local
+*.tsbuildinfo
+next-env.d.ts
+
+# Sensitive credential files — never commit these
+.claude/
+blog/blogger-automation/token.json
+blog/blogger-automation/credentials.json
+
+# Local-only files
+SKILL.md
+skills.md
+remove-bg.js

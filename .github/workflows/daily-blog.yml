@@ -1,0 +1,45 @@
+name: 📝 Daily Blog Publisher
+
+on:
+  schedule:
+    # Runs every day at 8:00 AM IST (2:30 AM UTC)
+    - cron: "30 2 * * *"
+  workflow_dispatch: # Also allows manual trigger from GitHub UI
+
+jobs:
+  publish:
+    name: Generate & Publish 5 Blog Posts
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # Needed to commit new MDX files back to repo
+
+    steps:
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: 📦 Install dependencies
+        run: npm install
+
+      - name: ✍️ Generate & publish blog posts
+        env:
+          ANTHROPIC_API_KEY:      ${{ secrets.ANTHROPIC_API_KEY }}
+          BLOGGER_BLOG_ID:        ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID:      ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET:  ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN:  ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+        run: node scripts/generate-and-publish.mjs
+
+      - name: 💾 Commit new posts to repo
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "GitHub Actions Bot"
+          git add content/blog/ scripts/published-posts.json
+          git diff --staged --quiet || git commit -m "📝 Daily blog posts - $(date +'%Y-%m-%d')"
+          git push

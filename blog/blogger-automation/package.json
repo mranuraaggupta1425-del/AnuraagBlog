@@ -1,0 +1,17 @@
+{
+  "name": "blogger-automation",
+  "version": "1.0.0",
+  "description": "Automates publishing blog posts from posts.json to Blogger.com",
+  "main": "publish-to-blogger.js",
+  "scripts": {
+    "publish":     "node publish-to-blogger.js",
+    "publish:dry": "node publish-to-blogger.js --dry-run",
+    "publish:all": "node publish-to-blogger.js --force-all",
+    "publish:one": "node publish-to-blogger.js --post",
+    "list":        "node list-posts.js"
+  },
+  "dependencies": {
+    "googleapis": "^144.0.0",
+    "open": "^8.4.2"
+  }
+}

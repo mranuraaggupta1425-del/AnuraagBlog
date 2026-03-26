@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="" id="metaDescription" />
+    <title id="pageTitle">Loading… — Inkwell</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body class="post-page">
+
+    <!-- ========== HEADER / NAV ========== -->
+    <header class="site-header" id="top">
+      <div class="container">
+        <a href="index.html" class="logo" aria-label="Inkwell home">
+          <span class="logo-icon" aria-hidden="true">✦</span>
+          Inkwell
+        </a>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mainNav">
+          <span class="hamburger"></span>
+        </button>
+        <nav class="main-nav" id="mainNav" aria-label="Main navigation">
+          <ul role="list">
+            <li><a href="index.html" class="nav-link">Home</a></li>
+            <li><a href="index.html#featured" class="nav-link">Featured</a></li>
+            <li><a href="index.html#categories" class="nav-link">Categories</a></li>
+            <li><a href="index.html#newsletter" class="nav-link">Newsletter</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <!-- ========== READING PROGRESS BAR ========== -->
+    <div class="progress-bar" id="progressBar" role="progressbar" aria-label="Reading progress" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <main id="main-content">
+
+      <!-- ========== BREADCRUMB ========== -->
+      <nav class="breadcrumb-nav container" aria-label="Breadcrumb">
+        <ol class="breadcrumb" id="breadcrumb">
+          <li><a href="index.html">Home</a></li>
+          <li aria-current="page" id="breadcrumbPost">Loading…</li>
+        </ol>
+      </nav>
+
+      <!-- ========== POST ARTICLE ========== -->
+      <article class="post-article" id="postArticle" aria-busy="true">
+        <div class="container post-container">
+
+          <!-- Post header (loading skeleton) -->
+          <header class="post-header" id="postHeader">
+            <div class="skeleton-post-header" aria-hidden="true">
+              <div class="skeleton skeleton-tag"></div>
+              <div class="skeleton skeleton-title"></div>
+              <div class="skeleton skeleton-title skeleton-title--short"></div>
+              <div class="skeleton skeleton-meta"></div>
+            </div>
+          </header>
+
+          <!-- Post body -->
+          <div class="post-body" id="postBody">
+            <div class="skeleton-post-body" aria-hidden="true">
+              <div class="skeleton skeleton-para"></div>
+              <div class="skeleton skeleton-para"></div>
+              <div class="skeleton skeleton-subheading"></div>
+              <div class="skeleton skeleton-para"></div>
+              <div class="skeleton skeleton-para skeleton-para--short"></div>
+            </div>
+          </div>
+
+          <!-- Post footer / tags -->
+          <footer class="post-footer" id="postFooter" hidden>
+            <div class="post-tags" id="postTags" aria-label="Post tags"></div>
+            <div class="post-share">
+              <p class="share-label">Share this post</p>
+              <div class="share-buttons" id="shareButtons"></div>
+            </div>
+          </footer>
+
+        </div>
+      </article>
+
+      <!-- ========== ERROR STATE ========== -->
+      <div class="error-page hidden" id="errorPage" role="alert">
+        <div class="container">
+          <p class="error-code" aria-hidden="true">404</p>
+          <h1>Post not found</h1>
+          <p>The post you're looking for doesn't exist or has been moved.</p>
+          <a href="index.html" class="btn btn-primary">← Back to Home</a>
+        </div>
+      </div>
+
+      <!-- ========== MORE POSTS ========== -->
+      <section class="section more-posts-section" id="morePosts" hidden aria-labelledby="more-posts-heading">
+        <div class="container">
+          <h2 class="section-label" id="more-posts-heading">More Posts</h2>
+          <div class="posts-grid" id="morePostsGrid"></div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="site-footer" aria-label="Site footer">
+      <div class="container footer-inner">
+        <div class="footer-brand">
+          <a href="index.html" class="logo" aria-label="Inkwell home">
+            <span class="logo-icon" aria-hidden="true">✦</span> Inkwell
+          </a>
+          <p>Writing about the web, for the web.</p>
+        </div>
+        <nav class="footer-nav" aria-label="Footer navigation">
+          <ul role="list">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="index.html#featured">Featured</a></li>
+            <li><a href="index.html#categories">Categories</a></li>
+            <li><a href="index.html#newsletter">Newsletter</a></li>
+          </ul>
+        </nav>
+      </div>
+      <div class="footer-bottom container">
+        <p>© <span id="footerYear"></span> Inkwell. Built with semantic HTML, CSS, and vanilla JS.</p>
+        <a href="#top" class="back-to-top" aria-label="Back to top">↑ Top</a>
+      </div>
+    </footer>
+
+    <script src="js/post.js" type="module"></script>
+  </body>
+</html>
