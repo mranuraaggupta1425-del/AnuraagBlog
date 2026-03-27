@@ -111,16 +111,24 @@ const CORE_CATEGORIES = {
     { name: "Trade Wars, Tariffs and the New Economic Nationalism",      tags: ["geopolitics", "economics", "trade"] },
   ],
   mythology: [
-    { name: "The Mahabharata: Lessons in Leadership, Dharma and Moral Dilemmas", tags: ["hindu mythology", "history", "culture"] },
-    { name: "Lord Shiva: The Many Faces of the Destroyer and Transformer", tags: ["hindu mythology", "spirituality", "culture"] },
-    { name: "The Ramayana and Its Timeless Lessons on Duty and Sacrifice", tags: ["hindu mythology", "history", "philosophy"] },
-    { name: "Vishnu's Ten Avatars and What They Reveal About Human Evolution", tags: ["hindu mythology", "philosophy", "culture"] },
-    { name: "The Concept of Karma in Hindu Mythology and Modern Science",  tags: ["hindu mythology", "philosophy", "spirituality"] },
-    { name: "Goddess Durga and the Symbolism of Feminine Power in Hinduism", tags: ["hindu mythology", "culture", "spirituality"] },
-    { name: "Hindu Cosmology: How Ancient India Understood the Universe",  tags: ["hindu mythology", "science", "history"] },
-    { name: "The Bhagavad Gita: Philosophy That Still Guides the World Today", tags: ["hindu mythology", "philosophy", "history"] },
-    { name: "Demons and Gods in Hindu Mythology: The Eternal Battle Within", tags: ["hindu mythology", "spirituality", "culture"] },
-    { name: "How Hindu Mythology Shaped Mathematics, Astronomy and Medicine", tags: ["hindu mythology", "science", "history"] },
+    // Festivals & Significance
+    { name: "Diwali: The Festival of Lights and Its Deeper Spiritual Significance", tags: ["hindu festivals", "diwali", "spirituality"], isMythology: true },
+    { name: "Navratri and the Nine Forms of Goddess Durga: What Each Day Means", tags: ["hindu festivals", "navratri", "spirituality"], isMythology: true },
+    { name: "Holi: The Colours, the Legend of Prahlad and the Triumph of Good", tags: ["hindu festivals", "holi", "culture"], isMythology: true },
+    { name: "Makar Sankranti: Sun Worship, Harvest Joy and Regional Traditions Across India", tags: ["hindu festivals", "makar sankranti", "culture"], isMythology: true },
+    { name: "Ganesh Chaturthi: The Story Behind the Beloved Elephant God", tags: ["hindu festivals", "ganesh chaturthi", "spirituality"], isMythology: true },
+    { name: "Ram Navami: Celebrating the Birth of Lord Ram and What It Stands For", tags: ["hindu festivals", "ram navami", "spirituality"], isMythology: true },
+    { name: "Janmashtami: The Birth of Lord Krishna and the Philosophy He Brought", tags: ["hindu festivals", "janmashtami", "spirituality"], isMythology: true },
+    { name: "Maha Shivaratri: The Night of Lord Shiva and Its Sacred Traditions", tags: ["hindu festivals", "maha shivaratri", "spirituality"], isMythology: true },
+    { name: "Pongal and Onam: Harvest Festivals That Bind Communities Together", tags: ["hindu festivals", "harvest", "culture"], isMythology: true },
+    { name: "Durga Puja: Bengal's Grand Celebration of the Goddess and Its Cultural Depth", tags: ["hindu festivals", "durga puja", "culture"], isMythology: true },
+    // Mythology & Philosophy
+    { name: "The Mahabharata: Lessons in Dharma, Leadership and Moral Courage",  tags: ["hindu mythology", "history", "philosophy"], isMythology: true },
+    { name: "The Ramayana and Its Timeless Lessons on Duty, Love and Sacrifice",  tags: ["hindu mythology", "history", "philosophy"], isMythology: true },
+    { name: "The Bhagavad Gita: Ancient Wisdom That Still Guides Millions Today",  tags: ["hindu mythology", "philosophy", "spirituality"], isMythology: true },
+    { name: "Vishnu's Ten Avatars: The Symbolism Behind Each Divine Form",         tags: ["hindu mythology", "philosophy", "culture"], isMythology: true },
+    { name: "Hindu Cosmology: How Ancient India Understood the Universe",           tags: ["hindu mythology", "science", "history"], isMythology: true },
+    { name: "The Concept of Karma: What Hindu Philosophy Actually Says",           tags: ["hindu mythology", "philosophy", "spirituality"], isMythology: true },
   ],
 };
 
@@ -139,7 +147,7 @@ const PHOTOS = {
   healthcare:   ["photo-1576091160550-2173dba999ef", "photo-1559757148-5c350d0d3c56", "photo-1532938911079-1b06ac7ceec7"],
   energy:       ["photo-1509391366360-2e959784a276", "photo-1497435334941-8c899a9bd6b4", "photo-1466611653911-95081537e5b7"],
   robotics:     ["photo-1535378917042-10a22c95931a", "photo-1558618666-fcd25c85cd64", "photo-1563207153-f403bf289096"],
-  mythology:    ["photo-1599707367072-cd6ada2bc375", "photo-1518709268805-4e9042af9f23", "photo-1564507592333-c60657eea523"],
+  mythology:    ["photo-1574685285859-2b9a6b0a4e12", "photo-1506905925346-21bda4d32df4", "photo-1518709268805-4e9042af9f23"],
   default:      ["photo-1455390582262-044cdead277a", "photo-1486312338219-ce68d2c6f44d", "photo-1499750310107-5fef28a66643"],
 };
 
@@ -166,7 +174,8 @@ async function generatePost(topic, existingSlugs, today) {
     "You are a professional blog writer. Write a high-quality, humanized blog post on the topic below.",
     "",
     "Topic: " + topic.name,
-    topic.fromTrends ? "Note: This is a TRENDING topic in India right now. Write it as a timely, news-aware piece — explain what is happening, why it is trending, and what it means." : "",
+    topic.fromTrends ? "Note: This is a TRENDING topic right now globally. Write it as a timely, news-aware piece — explain what is happening, why it is trending, and what it means." : "",
+    topic.isMythology ? "Note: This is a HINDU MYTHOLOGY or HINDU FESTIVAL topic. Treat it with deep respect and reverence." : "",
     "Date: " + today,
     "",
     "Return ONLY valid MDX with frontmatter. No extra commentary. No code fences. Start directly with ---",
@@ -222,6 +231,24 @@ async function generatePost(topic, existingSlugs, today) {
     "",
     "6. ENDING — Close with a forward-looking thought about where this topic is headed. Keep it grounded, not dramatic.",
     "   Final line must be (in italic): *All views and analysis presented here are based on publicly available information.*",
+    "",
+    ...(topic.isMythology ? [
+      "ADDITIONAL RULES FOR THIS POST (MANDATORY — Hindu mythology/festival topic):",
+      "A. Write with full reverence, warmth and respect for Hindu traditions, deities and devotees.",
+      "B. ABSOLUTELY NO controversial, hurtful, objectional or politically charged statements about any deity, festival, ritual or belief.",
+      "C. Do NOT compare or rank Hindu deities, rituals or festivals against other religions.",
+      "D. Do NOT include any content that could hurt religious sentiments — no mockery, no scepticism, no reductive analysis.",
+      "E. Write as a respectful, knowledgeable admirer of the tradition — celebrate its beauty, depth and wisdom.",
+      "F. IMAGES for this post — use ONLY these respectful, appropriate photo IDs:",
+      "   diya/lamps: photo-1574685285859-2b9a6b0a4e12",
+      "   temple architecture: photo-1506905925346-21bda4d32df4",
+      "   peaceful nature/spiritual: photo-1518709268805-4e9042af9f23",
+      "   lotus flower: photo-1587300003388-59208cc962cb",
+      "   incense/prayer: photo-1526374965328-7f61d4dc18c5",
+      "   colourful rangoli: photo-1574685285859-2b9a6b0a4e12",
+      "   mountain/spiritual landscape: photo-1506905925346-21bda4d32df4",
+      "   Do NOT use any image that could be seen as disrespectful to Hindu traditions.",
+    ] : []),
   ];
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
