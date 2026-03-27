@@ -36,34 +36,43 @@ if (!ANTHROPIC_API_KEY) {
   process.exit(1);
 }
 
-// ── Fetch trending topics from Google Trends India ────────────────────────────
+// ── Fetch trending topics from Google Trends India (RSS feed) ────────────────
 async function fetchGoogleTrends() {
   try {
-    // Google Trends daily trending API — geo=IN, cat=3 (Business & Finance area)
-    const url = "https://trends.google.com/trends/api/dailytrends?hl=en-US&tz=-330&geo=IN&ns=15";
-    const res = await fetch(url, {
+    const res = await fetch("https://trends.google.com/trending/rss?geo=IN", {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
         "Accept-Language": "en-US,en;q=0.9",
       },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    // Google Trends API prepends )]}' to prevent JSON hijacking — strip it
-    const json = JSON.parse(text.replace(/^\)\]\}',?\n?/, ""));
-    const trendingSearches = json?.default?.trendingSearchesDays?.[0]?.trendingSearches || [];
-    const trends = trendingSearches
-      .slice(0, 8)
+    const xml = await res.text();
+
+    // Extract <item> blocks and parse title + news category hint
+    const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map((m) => m[1]);
+    const trends = items
+      .slice(0, 10)
+      .map((item) => {
+        const titleMatch = item.match(/<title><!\[CDATA\[([^\]]+)\]\]>|<title>([^<]+)<\/title>/);
+        const newsMatch  = item.match(/<ht:news_item_title><!\[CDATA\[([^\]]+)\]\]>|<ht:news_item_title>([^<]+)<\/ht:news_item_title>/);
+        const name = (titleMatch?.[1] || titleMatch?.[2] || "").trim();
+        const hint = (newsMatch?.[1]  || newsMatch?.[2]  || "").trim();
+        return { name, hint };
+      })
+      .filter((t) => t.name.length > 3 && !/^\d/.test(t.name)) // skip purely numeric trends
       .map((t) => ({
-        name: t.title?.query || "",
-        tags: (t.articles?.[0]?.source || "trending").toLowerCase().split(" ").slice(0, 2).concat(["india", "trending"]),
+        name: t.name + (t.hint ? ` — ${t.hint}` : ""),
+        tags: ["trending", "india", "news"],
         fromTrends: true,
-      }))
-      .filter((t) => t.name.length > 3);
-    if (trends.length > 0) console.log(`  🔥  Fetched ${trends.length} trending topics from Google Trends India`);
+      }));
+
+    if (trends.length > 0) {
+      console.log(`  Fetched ${trends.length} trending topics from Google Trends India:`);
+      trends.slice(0, 3).forEach((t) => console.log("    • " + t.name));
+    }
     return trends;
   } catch (err) {
-    console.log(`  ⚠️   Google Trends fetch failed (${err.message}) — using fallback topics`);
+    console.log(`  Google Trends fetch failed (${err.message}) — using fallback topics only`);
     return [];
   }
 }
