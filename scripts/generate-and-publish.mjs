@@ -36,10 +36,11 @@ if (!ANTHROPIC_API_KEY) {
   process.exit(1);
 }
 
-// ── Fetch trending topics from Google Trends India (RSS feed) ────────────────
+// ── Fetch trending topics Worldwide from Google Trends RSS ───────────────────
 async function fetchGoogleTrends() {
   try {
-    const res = await fetch("https://trends.google.com/trending/rss?geo=IN", {
+    // No geo param = worldwide trending topics
+    const res = await fetch("https://trends.google.com/trending/rss", {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
         "Accept-Language": "en-US,en;q=0.9",
@@ -48,7 +49,7 @@ async function fetchGoogleTrends() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const xml = await res.text();
 
-    // Extract <item> blocks and parse title + news category hint
+    // Extract <item> blocks and parse title + news headline for context
     const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map((m) => m[1]);
     const trends = items
       .slice(0, 10)
@@ -59,16 +60,16 @@ async function fetchGoogleTrends() {
         const hint = (newsMatch?.[1]  || newsMatch?.[2]  || "").trim();
         return { name, hint };
       })
-      .filter((t) => t.name.length > 3 && !/^\d/.test(t.name)) // skip purely numeric trends
+      .filter((t) => t.name.length > 3 && !/^\d/.test(t.name))
       .map((t) => ({
         name: t.name + (t.hint ? ` — ${t.hint}` : ""),
-        tags: ["trending", "india", "news"],
+        tags: ["trending", "world", "news"],
         fromTrends: true,
       }));
 
     if (trends.length > 0) {
-      console.log(`  Fetched ${trends.length} trending topics from Google Trends India:`);
-      trends.slice(0, 3).forEach((t) => console.log("    • " + t.name));
+      console.log(`  Fetched ${trends.length} trending topics from Google Trends (Worldwide):`);
+      trends.slice(0, 2).forEach((t) => console.log("    • " + t.name));
     }
     return trends;
   } catch (err) {
@@ -77,29 +78,54 @@ async function fetchGoogleTrends() {
   }
 }
 
-// ── Fallback topic pool (used when Trends unavailable or to fill remaining slots) ──
-const TOPICS = [
-  { name: "Mechanical and Civil Engineering Innovation",     tags: ["engineering", "innovation", "infrastructure"] },
-  { name: "Global Geopolitical Tensions in 2026",           tags: ["geopolitics", "global affairs", "conflict"] },
-  { name: "Business Strategy in the Age of AI",             tags: ["business", "strategy", "artificial intelligence"] },
-  { name: "Stock Market Trends and Investment Insights",    tags: ["stock market", "investing", "finance"] },
-  { name: "Climate and Environment: The 2026 Reality",      tags: ["environment", "climate", "sustainability"] },
-  { name: "Shifting Diplomacy: New Alliances and Old Rivals", tags: ["diplomacy", "international relations", "politics"] },
-  { name: "Breakthrough Inventions of Early 2026",          tags: ["inventions", "innovation", "technology"] },
-  { name: "AI and Machine Learning: Cutting Edge in 2026",  tags: ["artificial intelligence", "machine learning", "technology"] },
-  { name: "Space Exploration: The New Race",                tags: ["space", "astronomy", "science"] },
-  { name: "Cybersecurity Threats and Solutions Today",      tags: ["cybersecurity", "privacy", "technology"] },
-  { name: "Healthcare and Biotechnology Frontiers",         tags: ["healthcare", "biotech", "medicine"] },
-  { name: "The Global Energy Transition",                   tags: ["energy", "renewables", "sustainability"] },
-  { name: "Trade Wars and Global Economics",                tags: ["economics", "trade", "policy"] },
-  { name: "The Future of Electric Vehicles and Mobility",   tags: ["EVs", "transport", "technology"] },
-  { name: "Robotics and Automation Reshaping Industry",     tags: ["robotics", "automation", "technology"] },
-  { name: "Quantum Computing: Hype vs Reality",             tags: ["quantum computing", "technology", "science"] },
-  { name: "Mental Health in a Hyper-Connected World",       tags: ["mental health", "society", "technology"] },
-  { name: "The Rise of Sovereign AI Models",                tags: ["artificial intelligence", "geopolitics", "technology"] },
-  { name: "Semiconductor Wars: Chips and Global Power",     tags: ["semiconductors", "technology", "geopolitics"] },
-  { name: "Water Scarcity: The Silent Crisis",              tags: ["water", "environment", "global affairs"] },
-];
+// ── Core category pool — engineering, finance, environment, AI, geopolitics, mythology ──
+const CORE_CATEGORIES = {
+  engineering: [
+    { name: "Civil Engineering Innovations Reshaping Modern Cities",      tags: ["engineering", "infrastructure", "innovation"] },
+    { name: "How Structural Engineering Is Evolving Post-Climate Crisis",  tags: ["engineering", "climate", "infrastructure"] },
+    { name: "The Rise of Smart Construction and Digital Twins",           tags: ["engineering", "technology", "innovation"] },
+    { name: "Bridges, Tunnels and the Engineering Feats of 2026",        tags: ["engineering", "infrastructure", "science"] },
+  ],
+  finance: [
+    { name: "Stock Market Trends and What Investors Should Watch",        tags: ["finance", "stock market", "investing"] },
+    { name: "How Global Interest Rates Are Reshaping Personal Finance",   tags: ["finance", "economics", "investing"] },
+    { name: "Cryptocurrency, Gold and the Search for Safe Assets",        tags: ["finance", "crypto", "investing"] },
+    { name: "The Rise of Retail Investors and Zero-Commission Trading",   tags: ["finance", "stock market", "technology"] },
+  ],
+  environment: [
+    { name: "Climate Change in 2026: What the Data Actually Shows",       tags: ["environment", "climate", "sustainability"] },
+    { name: "Oceans, Deforestation and the Crisis Nobody Talks About",    tags: ["environment", "climate", "global affairs"] },
+    { name: "Renewable Energy Is Winning — Here Is the Proof",           tags: ["environment", "energy", "sustainability"] },
+    { name: "Water Scarcity: The Silent Crisis Spreading Across Continents", tags: ["environment", "water", "global affairs"] },
+  ],
+  ai: [
+    { name: "How AI Is Changing Every Industry Right Now",               tags: ["artificial intelligence", "technology", "innovation"] },
+    { name: "The Battle for AI Supremacy: US, China and Europe",         tags: ["artificial intelligence", "geopolitics", "technology"] },
+    { name: "Large Language Models Beyond ChatGPT: What Is Next",        tags: ["artificial intelligence", "machine learning", "technology"] },
+    { name: "AI in Healthcare: Diagnosing Disease Before Symptoms Appear", tags: ["artificial intelligence", "healthcare", "technology"] },
+  ],
+  geopolitics: [
+    { name: "Global Geopolitical Tensions That Will Define 2026",         tags: ["geopolitics", "global affairs", "conflict"] },
+    { name: "Shifting Alliances: How the World Order Is Being Redrawn",  tags: ["geopolitics", "diplomacy", "international relations"] },
+    { name: "The Semiconductor War Between Nations",                      tags: ["geopolitics", "technology", "economics"] },
+    { name: "Trade Wars, Tariffs and the New Economic Nationalism",      tags: ["geopolitics", "economics", "trade"] },
+  ],
+  mythology: [
+    { name: "The Mahabharata: Lessons in Leadership, Dharma and Moral Dilemmas", tags: ["hindu mythology", "history", "culture"] },
+    { name: "Lord Shiva: The Many Faces of the Destroyer and Transformer", tags: ["hindu mythology", "spirituality", "culture"] },
+    { name: "The Ramayana and Its Timeless Lessons on Duty and Sacrifice", tags: ["hindu mythology", "history", "philosophy"] },
+    { name: "Vishnu's Ten Avatars and What They Reveal About Human Evolution", tags: ["hindu mythology", "philosophy", "culture"] },
+    { name: "The Concept of Karma in Hindu Mythology and Modern Science",  tags: ["hindu mythology", "philosophy", "spirituality"] },
+    { name: "Goddess Durga and the Symbolism of Feminine Power in Hinduism", tags: ["hindu mythology", "culture", "spirituality"] },
+    { name: "Hindu Cosmology: How Ancient India Understood the Universe",  tags: ["hindu mythology", "science", "history"] },
+    { name: "The Bhagavad Gita: Philosophy That Still Guides the World Today", tags: ["hindu mythology", "philosophy", "history"] },
+    { name: "Demons and Gods in Hindu Mythology: The Eternal Battle Within", tags: ["hindu mythology", "spirituality", "culture"] },
+    { name: "How Hindu Mythology Shaped Mathematics, Astronomy and Medicine", tags: ["hindu mythology", "science", "history"] },
+  ],
+};
+
+// Flatten for fallback use
+const TOPICS = Object.values(CORE_CATEGORIES).flat();
 
 // Curated Unsplash photo IDs per category
 const PHOTOS = {
@@ -113,6 +139,7 @@ const PHOTOS = {
   healthcare:   ["photo-1576091160550-2173dba999ef", "photo-1559757148-5c350d0d3c56", "photo-1532938911079-1b06ac7ceec7"],
   energy:       ["photo-1509391366360-2e959784a276", "photo-1497435334941-8c899a9bd6b4", "photo-1466611653911-95081537e5b7"],
   robotics:     ["photo-1535378917042-10a22c95931a", "photo-1558618666-fcd25c85cd64", "photo-1563207153-f403bf289096"],
+  mythology:    ["photo-1599707367072-cd6ada2bc375", "photo-1518709268805-4e9042af9f23", "photo-1564507592333-c60657eea523"],
   default:      ["photo-1455390582262-044cdead277a", "photo-1486312338219-ce68d2c6f44d", "photo-1499750310107-5fef28a66643"],
 };
 
@@ -128,6 +155,7 @@ function pickPhoto(tags) {
   if (t.includes("health") || t.includes("biotech"))                return PHOTOS.healthcare[Math.floor(Math.random() * 3)];
   if (t.includes("energy") || t.includes("renew") || t.includes("ev")) return PHOTOS.energy[Math.floor(Math.random() * 3)];
   if (t.includes("robot") || t.includes("automat"))                 return PHOTOS.robotics[Math.floor(Math.random() * 3)];
+  if (t.includes("mythol") || t.includes("ancient") || t.includes("legend")) return PHOTOS.mythology[Math.floor(Math.random() * 3)];
   return PHOTOS.default[Math.floor(Math.random() * 3)];
 }
 
@@ -246,13 +274,23 @@ async function main() {
   console.log("\n Daily Blog Generator — " + today);
   console.log("=".repeat(52));
 
-  // Fetch Google Trends India topics
+  // ── Post 1 & 2: Worldwide Google Trends ─────────────────────────────────────
   const trendingTopics = await fetchGoogleTrends();
-
-  // Use up to 2 trending topics + fill remaining slots from fallback pool
   const trendSlots = trendingTopics.slice(0, 2);
-  const fallbackSlots = [...TOPICS].sort(() => Math.random() - 0.5).slice(0, 5 - trendSlots.length);
-  const selectedTopics = [...trendSlots, ...fallbackSlots];
+
+  // ── Posts 3–5: One from each of 3 randomly picked core categories ────────────
+  const categoryKeys = Object.keys(CORE_CATEGORIES).sort(() => Math.random() - 0.5).slice(0, 3);
+  const coreSlots = categoryKeys.map((cat) => {
+    const pool = CORE_CATEGORIES[cat];
+    return pool[Math.floor(Math.random() * pool.length)];
+  });
+
+  // If Trends failed, fill remaining slots from core pool too
+  const trendFill = trendSlots.length < 2
+    ? Object.values(CORE_CATEGORIES).flat().sort(() => Math.random() - 0.5).slice(0, 2 - trendSlots.length)
+    : [];
+
+  const selectedTopics = [...trendSlots, ...trendFill, ...coreSlots];
   console.log("Generating 5 posts with Claude AI...\n");
 
   const generatedSlugs = new Set(existingSlugs);
