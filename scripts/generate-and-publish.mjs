@@ -36,7 +36,39 @@ if (!ANTHROPIC_API_KEY) {
   process.exit(1);
 }
 
-// 20 rotating topics across all requested categories
+// ── Fetch trending topics from Google Trends India ────────────────────────────
+async function fetchGoogleTrends() {
+  try {
+    // Google Trends daily trending API — geo=IN, cat=3 (Business & Finance area)
+    const url = "https://trends.google.com/trends/api/dailytrends?hl=en-US&tz=-330&geo=IN&ns=15";
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    // Google Trends API prepends )]}' to prevent JSON hijacking — strip it
+    const json = JSON.parse(text.replace(/^\)\]\}',?\n?/, ""));
+    const trendingSearches = json?.default?.trendingSearchesDays?.[0]?.trendingSearches || [];
+    const trends = trendingSearches
+      .slice(0, 8)
+      .map((t) => ({
+        name: t.title?.query || "",
+        tags: (t.articles?.[0]?.source || "trending").toLowerCase().split(" ").slice(0, 2).concat(["india", "trending"]),
+        fromTrends: true,
+      }))
+      .filter((t) => t.name.length > 3);
+    if (trends.length > 0) console.log(`  🔥  Fetched ${trends.length} trending topics from Google Trends India`);
+    return trends;
+  } catch (err) {
+    console.log(`  ⚠️   Google Trends fetch failed (${err.message}) — using fallback topics`);
+    return [];
+  }
+}
+
+// ── Fallback topic pool (used when Trends unavailable or to fill remaining slots) ──
 const TOPICS = [
   { name: "Mechanical and Civil Engineering Innovation",     tags: ["engineering", "innovation", "infrastructure"] },
   { name: "Global Geopolitical Tensions in 2026",           tags: ["geopolitics", "global affairs", "conflict"] },
@@ -97,6 +129,7 @@ async function generatePost(topic, existingSlugs, today) {
     "You are a professional blog writer. Write a high-quality, humanized blog post on the topic below.",
     "",
     "Topic: " + topic.name,
+    topic.fromTrends ? "Note: This is a TRENDING topic in India right now. Write it as a timely, news-aware piece — explain what is happening, why it is trending, and what it means." : "",
     "Date: " + today,
     "",
     "Return ONLY valid MDX with frontmatter. No extra commentary. No code fences. Start directly with ---",
@@ -201,10 +234,16 @@ async function main() {
       .map((f) => f.replace(".mdx", ""))
   );
 
-  const selectedTopics = [...TOPICS].sort(() => Math.random() - 0.5).slice(0, 5);
-
   console.log("\n Daily Blog Generator — " + today);
   console.log("=".repeat(52));
+
+  // Fetch Google Trends India topics
+  const trendingTopics = await fetchGoogleTrends();
+
+  // Use up to 2 trending topics + fill remaining slots from fallback pool
+  const trendSlots = trendingTopics.slice(0, 2);
+  const fallbackSlots = [...TOPICS].sort(() => Math.random() - 0.5).slice(0, 5 - trendSlots.length);
+  const selectedTopics = [...trendSlots, ...fallbackSlots];
   console.log("Generating 5 posts with Claude AI...\n");
 
   const generatedSlugs = new Set(existingSlugs);
