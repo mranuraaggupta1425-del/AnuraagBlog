@@ -36,6 +36,48 @@ if (!ANTHROPIC_API_KEY) {
   process.exit(1);
 }
 
+// ── Fetch topic-matched photos from Pexels search page (no API key needed) ──
+async function fetchPexelsPhotos(searchQuery, count = 3) {
+  try {
+    const query = encodeURIComponent(searchQuery);
+    const res = await fetch(`https://www.pexels.com/search/${query}/`, {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36" },
+    });
+    const html = await res.text();
+    // Extract photo IDs from Pexels page HTML
+    const matches = [...html.matchAll(/pexels\.com\/photos\/(\d+)\//g)];
+    const ids = [...new Set(matches.map((m) => m[1]))].slice(0, count);
+    return ids.map((id) => `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=1200`);
+  } catch (err) {
+    console.log(`  Pexels fetch failed (${err.message}) — using fallback photos`);
+    return [];
+  }
+}
+
+// ── Generate Pexels search query from topic using Gemini (free) ──────────────
+async function getPexelsQuery(topicName) {
+  try {
+    const GEMINI_KEY = process.env.GEMINI_API_KEY;
+    if (!GEMINI_KEY) return topicName;
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `For a blog post about "${topicName}", give me 3 short, specific Pexels image search queries (2-4 words each) that would return perfectly matching photos. Return ONLY a JSON array like ["query 1","query 2","query 3"]. No explanation.` }] }],
+        }),
+      }
+    );
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+    const clean = text.replace(/```json|```/g, "").trim();
+    return JSON.parse(clean);
+  } catch {
+    return [topicName];
+  }
+}
+
 // ── Fetch trending topics Worldwide from Google Trends RSS ───────────────────
 async function fetchGoogleTrends() {
   try {
@@ -160,7 +202,18 @@ function pickPhoto(tags) {
 }
 
 async function generatePost(topic, existingSlugs, today) {
-  const heroPhoto = pickPhoto(topic.tags);
+  // ── Fetch topic-matched Pexels photos ──────────────────────────────────────
+  const queries = await getPexelsQuery(topic.name);
+  const pexelsPhotos = [];
+  for (const q of queries.slice(0, 3)) {
+    const photos = await fetchPexelsPhotos(q, 2);
+    pexelsPhotos.push(...photos);
+    if (pexelsPhotos.length >= 3) break;
+  }
+  // Fallback to verified Unsplash if Pexels fails
+  const heroPhoto = pexelsPhotos[0] || `https://images.unsplash.com/${pickPhoto(topic.tags)}?w=1400&q=80`;
+  const sectionPhoto1 = pexelsPhotos[1] || `https://images.unsplash.com/${pickPhoto(topic.tags)}?w=1200&q=80`;
+  const sectionPhoto2 = pexelsPhotos[2] || `https://images.unsplash.com/${pickPhoto(topic.tags)}?w=1200&q=80`;
 
   const lines = [
     "You are a professional blog writer. Write a high-quality, humanized blog post on the topic below.",
@@ -177,7 +230,7 @@ async function generatePost(topic, existingSlugs, today) {
     "date: \"" + today + "\"",
     "excerpt: \"2-3 sentence hook that makes readers want to keep reading.\"",
     "tags: " + JSON.stringify(topic.tags),
-    "image: \"https://images.unsplash.com/" + heroPhoto + "?w=1400&q=80\"",
+    "image: \"" + heroPhoto + "\"",
     "---",
     "",
     "[Article body here — 950-1200 words]",
@@ -201,22 +254,13 @@ async function generatePost(topic, existingSlugs, today) {
     "   - Use short bullet lists (3-5 items) where it helps clarity.",
     "   - Add a blank line between paragraphs.",
     "",
-    "4. IMAGES — Add 2-3 inline section images with descriptive, factual captions:",
-    "   Format: ![Clear descriptive caption](https://images.unsplash.com/photo-XXXXXXXXXX?w=1200&q=80)",
-    "   - Captions must describe what is in the image, not be vague.",
-    "   - Use ONLY these verified, safe, non-controversial Unsplash photo IDs:",
-    "   tech/circuits: photo-1518770660439-4636190af475",
-    "   global/maps: photo-1504711434969-e33886168f5c",
-    "   business meeting: photo-1460925895917-afdab827c52f",
-    "   AI visualization: photo-1677442135703-1787eea5ce01",
-    "   nature/green: photo-1569163139500-73e1a7c4bd88",
-    "   space/earth: photo-1446776811953-b23d57bd21aa",
-    "   healthcare/lab: photo-1576091160550-2173dba999ef",
-    "   solar energy: photo-1509391366360-2e959784a276",
-    "   finance charts: photo-1611974789855-9c2a0a7236a3",
-    "   robotics arm: photo-1535378917042-10a22c95931a",
-    "   city infrastructure: photo-1581094794329-c8112a89af12",
-    "   Hero image MUST be exactly: https://images.unsplash.com/" + heroPhoto + "?w=1400&q=80",
+    "4. IMAGES — Use EXACTLY these 2 pre-fetched images in the article body (already matched to the topic):",
+    "   Image 1: " + sectionPhoto1,
+    "   Image 2: " + sectionPhoto2,
+    "   Format: ![Descriptive caption matching the image content](IMAGE_URL)",
+    "   - Place Image 1 after the first or second section heading.",
+    "   - Place Image 2 after the third section heading.",
+    "   - Write captions that describe what is actually shown in a photo relevant to the topic.",
     "",
     "5. NO PLAGIARISM — All content must be 100% original. Do not copy or closely paraphrase any published article.",
     "   Use publicly known facts and trends but express them in completely fresh language.",
@@ -230,12 +274,6 @@ async function generatePost(topic, existingSlugs, today) {
       "B. Cover at least 2 of these angles: performance/tactics, business/money, fan culture, athlete stories, global impact.",
       "C. Include real statistics, records or facts where relevant to make the post credible.",
       "D. Keep the tone exciting but grounded — not over-hyped.",
-      "E. IMAGES for this post — use ONLY these verified sports photo IDs:",
-      "   stadium crowd: photo-1461896836934-ffe607ba8211",
-      "   athlete running: photo-1517649763962-0c623066013b",
-      "   sports trophy/celebration: photo-1574629810360-7efbbe195018",
-      "   football pitch: photo-1508098682722-e99c43a406b2",
-      "   basketball court: photo-1546519638-68e109498ffc",
     ] : []),
   ];
 
