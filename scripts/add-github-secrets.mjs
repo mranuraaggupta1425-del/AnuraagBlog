@@ -69,6 +69,7 @@ console.log('🔑  Public key fetched\n');
 
 const secrets = {
   ANTHROPIC_API_KEY:     process.env.ANTHROPIC_API_KEY,
+  GEMINI_API_KEY:        process.env.GEMINI_API_KEY,
   BLOGGER_BLOG_ID:       process.env.BLOGGER_BLOG_ID,
   BLOGGER_CLIENT_ID:     process.env.BLOGGER_CLIENT_ID,
   BLOGGER_CLIENT_SECRET: process.env.BLOGGER_CLIENT_SECRET,
